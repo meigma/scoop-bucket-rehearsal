@@ -57,7 +57,13 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $env:SCOOP = Join-Path $env:RUNNER_TEMP 'scoop-data'
-          $scoop = Resolve-Path '.\scoop-core\bin\scoop.ps1'
+          'apps', 'buckets', 'cache', 'persist', 'shims' | ForEach-Object {
+              New-Item (Join-Path $env:SCOOP $_) -ItemType Directory -Force | Out-Null
+          }
+          $scoopRoot = Resolve-Path '.\scoop-core'
+          $scoopApp = New-Item (Join-Path $env:SCOOP 'apps\scoop') -ItemType Directory -Force
+          New-Item (Join-Path $scoopApp 'current') -ItemType Junction -Target $scoopRoot | Out-Null
+          $scoop = Join-Path $scoopRoot 'bin\scoop.ps1'
           $checkout = Resolve-Path '.\bucket-under-test'
 
           function Invoke-Scoop {
@@ -67,6 +73,8 @@ jobs:
                   throw "scoop $($Arguments -join ' ') failed with exit code $LASTEXITCODE"
               }
           }
+          Invoke-Scoop config LAST_UPDATE ([DateTime]::Now.ToString('o'))
+
 
           Invoke-Scoop bucket add meigma-rehearsal $env:BUCKET_REPOSITORY
           $bucketList = Invoke-Scoop bucket list | Out-String
