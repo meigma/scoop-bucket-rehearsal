@@ -70,6 +70,8 @@ jobs:
                   throw "scoop $($Arguments -join ' ') failed with exit code $LASTEXITCODE"
               }
           }
+          Invoke-Scoop config LAST_UPDATE ([DateTime]::Now.ToString('o'))
+
 
           Invoke-Scoop bucket add meigma-rehearsal $env:BUCKET_REPOSITORY
           $bucketList = Invoke-Scoop bucket list | Out-String
