@@ -2,7 +2,7 @@
     "version": "0.1.5",
     "architecture": {
         "64bit": {
-            "url": "https://github.com/meigma/release/releases/download/v0.1.5/release-cli_0.1.5_windows_amd64.zip",
+            "url": "https://github.com/meigma/release/releases/download/v0.1.5/release-cli_0.1.5_windows_amd64-missing.zip",
             "bin": [
                 "release-cli.exe"
             ],
