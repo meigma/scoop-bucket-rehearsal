@@ -45,6 +45,7 @@ jobs:
         shell: pwsh
         run: |
           $env:SCOOP_HOME = Resolve-Path '.\scoop-core'
+          $env:CI = ''
           $result = Invoke-Pester -Path '.\bucket-under-test' -PassThru -Output Detailed
           if ($result.FailedCount -ne 0) {
               throw "Pinned Scoop bucket tests reported $($result.FailedCount) failure(s)."
