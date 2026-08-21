@@ -60,7 +60,10 @@ jobs:
           'apps', 'buckets', 'cache', 'persist', 'shims' | ForEach-Object {
               New-Item (Join-Path $env:SCOOP $_) -ItemType Directory -Force | Out-Null
           }
-          $scoop = Resolve-Path '.\scoop-core\bin\scoop.ps1'
+          $scoopRoot = Resolve-Path '.\scoop-core'
+          $scoopApp = New-Item (Join-Path $env:SCOOP 'apps\scoop') -ItemType Directory -Force
+          New-Item (Join-Path $scoopApp 'current') -ItemType Junction -Target $scoopRoot | Out-Null
+          $scoop = Join-Path $scoopRoot 'bin\scoop.ps1'
           $checkout = Resolve-Path '.\bucket-under-test'
 
           function Invoke-Scoop {
