@@ -18,5 +18,6 @@
     },
     "homepage": "https://github.com/meigma/release",
     "license": "Proprietary",
-    "description": "Release automation for Meigma projects."
+    "description": "Release automation for Meigma projects.",
+    "unexpected": true
 }
