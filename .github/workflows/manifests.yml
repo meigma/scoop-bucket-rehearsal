@@ -127,3 +127,80 @@ jobs:
           if (Test-Path (Join-Path $env:SCOOP 'apps\meigma-release-cli')) {
               throw 'Scoop left the application installed after uninstall.'
           }
+
+  arm64:
+    name: manifests / Windows ARM64 lifecycle
+    runs-on: windows-11-arm
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout bucket
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          path: bucket-under-test
+          persist-credentials: false
+
+      - name: Checkout pinned Scoop
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: ScoopInstaller/Scoop
+          ref: b588a06e41d920d2123ec70aee682bae14935939
+          path: scoop-core
+          persist-credentials: false
+
+      - name: Exercise ARM64 bucket lifecycle
+        shell: pwsh
+        env:
+          BUCKET_REPOSITORY: https://github.com/meigma/scoop-bucket-rehearsal
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:PROCESSOR_ARCHITECTURE -ne 'ARM64') {
+              throw "Expected an ARM64 host, got $env:PROCESSOR_ARCHITECTURE."
+          }
+
+          $env:SCOOP = Join-Path $env:RUNNER_TEMP 'scoop-data'
+          'apps', 'buckets', 'cache', 'persist', 'shims' | ForEach-Object {
+              New-Item (Join-Path $env:SCOOP $_) -ItemType Directory -Force | Out-Null
+          }
+          $scoopRoot = Resolve-Path '.\scoop-core'
+          $scoopApp = New-Item (Join-Path $env:SCOOP 'apps\scoop') -ItemType Directory -Force
+          New-Item (Join-Path $scoopApp 'current') -ItemType Junction -Target $scoopRoot | Out-Null
+          $scoop = Join-Path $scoopRoot 'bin\scoop.ps1'
+          $checkout = Resolve-Path '.\bucket-under-test'
+
+          function Invoke-Scoop {
+              param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments)
+              & $scoop @Arguments
+              if ($LASTEXITCODE -ne 0) {
+                  throw "scoop $($Arguments -join ' ') failed with exit code $LASTEXITCODE"
+              }
+          }
+
+          Invoke-Scoop config LAST_UPDATE ([DateTime]::Now.ToString('o'))
+          Invoke-Scoop bucket add meigma-rehearsal $env:BUCKET_REPOSITORY
+
+          $candidatePath = if (Test-Path (Join-Path $checkout 'bucket\meigma-release-cli.json')) {
+              Join-Path $checkout 'bucket\meigma-release-cli.json'
+          } else {
+              Join-Path $checkout 'meigma-release-cli.json'
+          }
+          $candidateVersion = (Get-Content $candidatePath -Raw | ConvertFrom-Json).version
+          $installedBucket = Join-Path $env:SCOOP 'buckets\meigma-rehearsal'
+          Remove-Item (Join-Path $installedBucket 'meigma-release-cli.json') -Force -ErrorAction SilentlyContinue
+          $target = Join-Path $installedBucket ($candidatePath.Substring($checkout.Path.Length + 1))
+          New-Item (Split-Path $target) -ItemType Directory -Force | Out-Null
+          Copy-Item $candidatePath $target -Force
+
+          Invoke-Scoop install meigma-rehearsal/meigma-release-cli
+          $executable = Join-Path $env:SCOOP 'apps\meigma-release-cli\current\release-cli.exe'
+          $output = & $executable version | Out-String
+          Write-Host $output
+          if ($LASTEXITCODE -ne 0 -or $output -notmatch [regex]::Escape($candidateVersion)) {
+              throw "ARM64 command did not report candidate version $candidateVersion."
+          }
+
+          Invoke-Scoop uninstall meigma-release-cli
+          if (Test-Path (Join-Path $env:SCOOP 'apps\meigma-release-cli')) {
+              throw 'Scoop left the ARM64 application installed after uninstall.'
+          }
