@@ -11,4 +11,4 @@ jobs:
   manifests:
     permissions:
       contents: read
-    uses: meigma/release/.github/workflows/scoop-bucket-ci.yml@cb43096b51b8f73e5e5df1e4f3b37bbd56f7876c
+    uses: meigma/release/.github/workflows/scoop-bucket-ci.yml@d14fb9af3ad1e43cf9aafe9e69342187af0ef0f1
